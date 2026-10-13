@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나를 사랑하는 한 문장 만들기</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Pretendard:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Pretendard', 'Jua', sans-serif;
+            background-color: #fcfbf9;
+            color: #1f2937;
+        }
+        .jua-font {
+            font-family: 'Jua', sans-serif;
+        }
+        /* Scrambled word card style for fun puzzle feel */
+        .word-card {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            border: 2px solid #64748b;
+            color: #1e293b;
+            padding: 0.6rem 1.2rem;
+            margin: 0.4rem;
+            border-radius: 1.25rem;
+            box-shadow: 0 4px 12px rgba(100, 116, 139, 0.12);
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        .word-card:nth-child(odd) {
+            transform: rotate(-1.5deg);
+        }
+        .word-card:nth-child(even) {
+            transform: rotate(1.5deg);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-4 md:p-8 bg-[#fcfbf9]">
+
+    <header class="max-w-4xl mx-auto w-full text-center py-4 border-b border-slate-200 relative">
+        <h1 class="text-3xl md:text-5xl jua-font text-slate-800 mb-1 tracking-tight">나를 사랑하는 말</h1>
+        
+        <!-- Discreet Teacher Mode Toggle Button (Top Right) -->
+        <button onclick="promptTeacherMode()" class="absolute right-0 top-4 px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition border border-slate-300">
+            교사 모드
+        </button>
+    </header>
+
+    <main class="max-w-4xl mx-auto w-full flex-grow flex items-center justify-center my-6">
+        
+        <!-- STUDENT VIEW (Default view for tablets) -->
+        <div id="view-student" class="w-full bg-white border border-slate-200 rounded-3xl p-6 md:p-10 shadow-sm">
+            <div class="text-center text-slate-600 space-y-1 mb-8 text-base md:text-lg">
+                <p class="font-bold text-slate-700">존재만으로도 소중한 나.</p>
+                <p>나를 사랑하는 데에도 연습이 필요하답니다.</p>
+                <p>나에게 어떤 말을 해주면 좋을까요?</p>
+            </div>
+            
+            <div class="space-y-6 max-w-lg mx-auto">
+                <div>
+                    <label class="block text-slate-800 font-bold mb-2 text-lg">모둠 선택</label>
+                    <select id="student-group" class="w-full p-4 border border-slate-300 rounded-2xl text-xl font-bold focus:outline-none focus:ring-2 focus:ring-slate-400 bg-slate-50 text-slate-800">
+                        <option value="1">1모둠</option>
+                        <option value="2">2모둠</option>
+                        <option value="3">3모둠</option>
+                        <option value="4">4모둠</option>
+                        <option value="5">5모둠</option>
+                        <option value="6">6모둠</option>
+                    </select>
+                </div>
+                <div>
+                    <div class="flex justify-between items-end mb-2">
+                        <label class="block text-slate-800 font-bold text-lg">나에게 전하는 한 문장 적기</label>
+                        <span class="text-sm font-semibold text-slate-500">(띄어쓰기 제외 7자 ~ 20자)</span>
+                    </div>
+                    <input type="text" id="student-sentence" maxlength="35" placeholder="나에게 해주고 싶은 멋진 응원의 말을 적어주세요..." class="w-full p-4 border border-slate-300 rounded-2xl text-lg focus:outline-none focus:ring-2 focus:ring-slate-400 bg-white text-slate-800 placeholder-slate-400">
+                    
+                    <!-- Dynamic Rotating Example Box -->
+                    <div class="mt-3 p-3.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-700 text-sm flex items-center gap-2">
+                        <span class="font-bold text-slate-600 shrink-0">💡 예시:</span>
+                        <span id="rotating-example" class="font-medium text-slate-800 transition-all duration-300">실수해도 다시 도전하면 돼</span>
+                    </div>
+                </div>
+                <button id="btn-submit-student" onclick="submitSentence()" class="w-full py-4 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-2xl text-2xl jua-font transition shadow-md flex items-center justify-center gap-2">
+                    <span id="btn-submit-text">제출하기</span>
+                    <span id="btn-submit-spinner" class="hidden animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- TEACHER VIEW (Accessible only via teacher prompt) -->
+        <div id="view-teacher" class="w-full hidden">
+            <div class="flex justify-end items-center mb-6">
+                <button onclick="switchMode('student')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 font-bold rounded-xl text-sm transition">
+                    학생 화면으로 돌아가기
+                </button>
+            </div>
+            
+            <!-- Group Tabs -->
+            <div class="flex flex-wrap justify-center gap-2 md:gap-3 mb-6" id="teacher-group-tabs">
+                <button onclick="selectTeacherGroup(1)" class="group-tab px-5 py-3 rounded-2xl font-bold text-lg jua-font bg-slate-100 text-slate-700 border border-slate-200 transition" data-group="1">1모둠</button>
+                <button onclick="selectTeacherGroup(2)" class="group-tab px-5 py-3 rounded-2xl font-bold text-lg jua-font bg-slate-100 text-slate-700 border border-slate-200 transition" data-group="2">2모둠</button>
+                <button onclick="selectTeacherGroup(3)" class="group-tab px-5 py-3 rounded-2xl font-bold text-lg jua-font bg-slate-100 text-slate-700 border border-slate-200 transition" data-group="3">3모둠</button>
+                <button onclick="selectTeacherGroup(4)" class="group-tab px-5 py-3 rounded-2xl font-bold text-lg jua-font bg-slate-100 text-slate-700 border border-slate-200 transition" data-group="4">4모둠</button>
+                <button onclick="selectTeacherGroup(5)" class="group-tab px-5 py-3 rounded-2xl font-bold text-lg jua-font bg-slate-100 text-slate-700 border border-slate-200 transition" data-group="5">5모둠</button>
+                <button onclick="selectTeacherGroup(6)" class="group-tab px-5 py-3 rounded-2xl font-bold text-lg jua-font bg-slate-100 text-slate-700 border border-slate-200 transition" data-group="6">6모둠</button>
+            </div>
+
+            <!-- Puzzle Board for Projector -->
+            <div class="bg-white border border-slate-200 rounded-3xl p-6 md:p-8 text-center max-w-3xl mx-auto shadow-sm">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                    <span id="puzzle-status" class="text-lg md:text-xl text-slate-800 font-bold jua-font">모둠을 선택하면 섞인 어절 카드가 나타납니다.</span>
+                    
+                    <!-- Teacher Correction Button -->
+                    <button id="btn-edit-sentence" onclick="toggleEditSentence()" class="hidden text-xs md:text-sm font-bold bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 px-3 py-1.5 rounded-xl transition">
+                        ✏️ 문장 수정
+                    </button>
+                </div>
+
+                <!-- Teacher Edit Form (Hidden by default) -->
+                <div id="edit-form-box" class="hidden my-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl text-left">
+                    <label class="block text-xs font-bold text-slate-700 mb-1">맞춤법/오탈자 직접 수정</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="edit-sentence-input" class="flex-grow p-3 border border-slate-300 rounded-xl text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-slate-400 bg-white text-slate-800">
+                        <button onclick="saveEditedSentence()" class="px-5 py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-sm jua-font transition">
+                            저장
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="scrambled-box" class="my-6 min-h-[140px] flex flex-wrap items-center justify-center gap-2 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-6">
+                    <span class="text-slate-400 text-xl font-bold jua-font">-</span>
+                </div>
+
+                <div id="answer-box" class="hidden text-3xl md:text-5xl jua-font text-amber-900 tracking-wide my-6 bg-amber-50 border-2 border-amber-200 rounded-2xl p-6 leading-relaxed shadow-inner">
+                    -
+                </div>
+
+                <button id="btn-reveal" onclick="revealAnswer()" class="hidden px-10 py-4 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-2xl text-2xl jua-font transition shadow-md">
+                    정답 공개
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="max-w-4xl mx-auto w-full text-center py-4 border-t border-slate-200 text-slate-400 text-xs md:text-sm">
+        나를 사랑하는 말
+    </footer>
+
+    <!-- Alert Modal -->
+    <div id="custom-modal" class="fixed inset-0 bg-slate-900/40 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full mx-4 text-center shadow-xl border border-slate-200">
+            <h3 id="modal-title" class="text-xl jua-font mb-2 text-slate-800">알림</h3>
+            <p id="modal-message" class="text-slate-600 mb-6">메시지 내용</p>
+            <button onclick="closeModal()" class="w-full py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-2xl jua-font transition">확인</button>
+        </div>
+    </div>
+
+    <!-- Password Modal for Teacher Access -->
+    <div id="pw-modal" class="fixed inset-0 bg-slate-900/40 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full mx-4 text-center shadow-xl border border-slate-200">
+            <h3 class="text-xl jua-font mb-2 text-slate-800">교사 인증</h3>
+            <p class="text-slate-600 text-sm mb-4">교사 확인 비밀번호를 입력해 주세요.</p>
+            <input type="password" id="pw-input" placeholder="비밀번호 입력" class="w-full p-3 border border-slate-300 rounded-xl mb-4 text-center text-lg focus:outline-none focus:ring-2 focus:ring-slate-400 bg-slate-50 text-slate-800">
+            <div class="flex gap-2">
+                <button onclick="closePwModal()" class="w-1/2 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl jua-font transition">취소</button>
+                <button onclick="checkPassword()" class="w-1/2 py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl jua-font transition">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Web Audio API Sound Effect -->
+    <script>
+        function playSuccessSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6 (Bright Chord)
+                notes.forEach((freq, idx) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.12, ctx.currentTime + idx * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.1 + 0.5);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(ctx.currentTime + idx * 0.1);
+                    osc.stop(ctx.currentTime + idx * 0.1 + 0.5);
+                });
+            } catch (e) {
+                console.log("Audio play blocked or unsupported");
+            }
+        }
+
+        window.showModal = function(title, msg) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = msg;
+            document.getElementById('custom-modal').classList.remove('hidden');
+            document.getElementById('custom-modal').classList.add('flex');
+        };
+
+        window.closeModal = function() {
+            document.getElementById('custom-modal').classList.add('hidden');
+            document.getElementById('custom-modal').classList.remove('flex');
+        };
+
+        window.promptTeacherMode = function() {
+            document.getElementById('pw-input').value = '';
+            document.getElementById('pw-modal').classList.remove('hidden');
+            document.getElementById('pw-modal').classList.add('flex');
+            setTimeout(() => document.getElementById('pw-input').focus(), 100);
+        };
+
+        window.closePwModal = function() {
+            document.getElementById('pw-modal').classList.add('hidden');
+            document.getElementById('pw-modal').classList.remove('flex');
+        };
+
+        window.checkPassword = function() {
+            const pw = document.getElementById('pw-input').value;
+            if (pw === '1234' || pw === '') { // Default pw: 1234 or empty
+                window.closePwModal();
+                window.switchMode('teacher');
+            } else {
+                window.showModal("비밀번호 오류", "비밀번호가 올바르지 않습니다.");
+            }
+        };
+
+        window.switchMode = function(mode) {
+            if (mode === 'teacher') {
+                document.getElementById('view-student').classList.add('hidden');
+                document.getElementById('view-teacher').classList.remove('hidden');
+                if (window.selectTeacherGroup) window.selectTeacherGroup(1);
+            } else {
+                document.getElementById('view-teacher').classList.add('hidden');
+                document.getElementById('view-student').classList.remove('hidden');
+            }
+        };
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'self-love-sentences-app';
+        const firebaseConfig = JSON.parse(__firebase_config);
+
+        let app, db, auth;
+        let sentencesData = {};
+
+        async function initFirebase() {
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                setupRealtimeListener();
+            } catch (error) {
+                console.error("Firebase Initialization Error:", error);
+            }
+        }
+
+        function setupRealtimeListener() {
+            const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'sentences');
+            onSnapshot(colRef, (snapshot) => {
+                sentencesData = {};
+                snapshot.forEach((docSnap) => {
+                    sentencesData[docSnap.id] = docSnap.data().text;
+                });
+                window.sentencesData = sentencesData;
+                if (window.currentSelectedGroup) {
+                    window.updateTeacherDisplay(window.currentSelectedGroup);
+                }
+            }, (error) => {
+                console.error("Firestore sync error:", error);
+            });
+        }
+
+        async function correctSpellingWithLLM(text) {
+            try {
+                const systemPrompt = "너는 초등학교 국어 교사야. 제공된 한국어 문장의 맞춤법, 띄어쓰기, 문장부호를 올바르고 자연스럽게 수정해줘. 원래 의미나 감성을 훼손하지 말고 오직 교정된 문장 하나만 정확하게 반환해. 다른 설명이나 인사말은 절대 추가하지 마.";
+                const userQuery = `다음 문장의 맞춤법과 띄어쓰기를 올바르게 교정해줘: "${text}"`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] }
+                };
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error("API call failed");
+
+                const result = await response.json();
+                const correctedText = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+                return correctedText ? correctedText.replace(/^["']|["']$/g, '') : text;
+            } catch (err) {
+                console.warn("LLM Spelling correction fallback:", err);
+                return text;
+            }
+        }
+
+        window.submitSentence = async function() {
+            const group = document.getElementById('student-group').value;
+            const rawText = document.getElementById('student-sentence').value.trim();
+
+            if (!rawText) {
+                window.showModal("입력 오류", "문장을 입력해 주세요!");
+                return;
+            }
+
+            const lengthWithoutSpaces = rawText.replace(/\s+/g, '').length;
+            if (lengthWithoutSpaces < 7 || lengthWithoutSpaces > 20) {
+                window.showModal("글자 수 확인", "띄어쓰기를 제외하고 7자 이상, 20자 이하로 입력해 주세요.");
+                return;
+            }
+
+            const btnText = document.getElementById('btn-submit-text');
+            const btnSpinner = document.getElementById('btn-submit-spinner');
+            btnText.innerText = "제출하는 중...";
+            btnSpinner.classList.remove('hidden');
+
+            try {
+                const correctedText = await correctSpellingWithLLM(rawText);
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'sentences', `group_${group}`);
+                await setDoc(docRef, { text: correctedText, rawText: rawText, updatedAt: new Date().toISOString() });
+                
+                window.showModal("제출 완료", `${group}모둠의 문장이 성공적으로 전송되었습니다!`);
+                document.getElementById('student-sentence').value = '';
+            } catch (error) {
+                console.error("Error writing document: ", error);
+                window.showModal("오류", "저장 중 문제가 발생했습니다. 다시 시도해 주세요.");
+            } finally {
+                btnText.innerText = "제출하기";
+                btnSpinner.classList.add('hidden');
+            }
+        };
+
+        window.saveEditedSentence = async function() {
+            const groupNum = window.currentSelectedGroup;
+            if (!groupNum) return;
+
+            const updatedText = document.getElementById('edit-sentence-input').value.trim();
+
+            if (!updatedText) {
+                window.showModal("수정 오류", "문장을 입력해 주세요.");
+                return;
+            }
+
+            try {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'sentences', `group_${groupNum}`);
+                await setDoc(docRef, { text: updatedText, updatedAt: new Date().toISOString() });
+                document.getElementById('edit-form-box').classList.add('hidden');
+                window.showModal("수정 완료", `${groupNum}모둠의 문장이 수정되었습니다.`);
+            } catch (error) {
+                console.error("Error updating document: ", error);
+                window.showModal("오류", "문장 수정 중 문제가 발생했습니다.");
+            }
+        };
+
+        window.initFirebase = initFirebase;
+    </script>
+
+    <script>
+        // Clean single-sentence self-love examples strictly without commas or multiple clauses
+        const studentExamples = [
+            "실수해도 다시 도전하면 돼",
+            "나는 존재 자체로 빛나는 소중한 사람이야",
+            "느려도 괜찮으니 차근차근 걸어가자",
+            "나는 매일 조금씩 멋지게 성장하고 있어",
+            "나 자신을 더 소중하게 아끼고 사랑해 줄 거야",
+            "어려운 일이 생겨도 지혜롭게 해낼 수 있어",
+            "남과 비교하지 않고 나만의 길을 당당하게 나아갈 거야"
+        ];
+        let exampleIndex = 0;
+
+        function startExampleRotation() {
+            const exampleEl = document.getElementById('rotating-example');
+            if (!exampleEl) return;
+            setInterval(() => {
+                exampleIndex = (exampleIndex + 1) % studentExamples.length;
+                exampleEl.style.opacity = '0';
+                setTimeout(() => {
+                    exampleEl.innerText = studentExamples[exampleIndex];
+                    exampleEl.style.opacity = '1';
+                }, 300);
+            }, 4000);
+        }
+
+        function renderScrambledCards(str) {
+            const words = str.trim().split(/\s+/);
+            
+            if (words.length <= 1) {
+                const chars = str.split('');
+                for (let i = chars.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [chars[i], chars[j]] = [chars[j], chars[i]];
+                }
+                return chars.map(c => `<div class="word-card text-2xl md:text-4xl jua-font">${c}</div>`).join('');
+            }
+            
+            for (let i = words.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [words[i], words[j]] = [words[j], words[i]];
+            }
+
+            return words.map(w => `<div class="word-card text-2xl md:text-4xl jua-font">${w}</div>`).join('');
+        }
+
+        function updateTeacherDisplay(groupNum) {
+            const statusEl = document.getElementById('puzzle-status');
+            const scrambledBox = document.getElementById('scrambled-box');
+            const answerBox = document.getElementById('answer-box');
+            const revealBtn = document.getElementById('btn-reveal');
+            const editBtn = document.getElementById('btn-edit-sentence');
+
+            const sentence = window.sentencesData ? window.sentencesData[`group_${groupNum}`] : null;
+
+            if (!sentence) {
+                statusEl.innerText = `${groupNum}모둠에서 아직 문장을 제출하지 않았습니다.`;
+                scrambledBox.innerHTML = '<span class="text-slate-400 text-xl font-bold jua-font">-</span>';
+                answerBox.classList.add('hidden');
+                revealBtn.classList.add('hidden');
+                editBtn.classList.add('hidden');
+                return;
+            }
+
+            statusEl.innerText = `${groupNum}모둠 문장`;
+            scrambledBox.innerHTML = renderScrambledCards(sentence);
+            answerBox.innerText = sentence;
+            answerBox.classList.add('hidden');
+            revealBtn.classList.remove('hidden');
+            editBtn.classList.remove('hidden');
+        }
+
+        function selectTeacherGroup(groupNum) {
+            window.currentSelectedGroup = groupNum;
+
+            document.querySelectorAll('.group-tab').forEach(tab => {
+                if (parseInt(tab.getAttribute('data-group')) === groupNum) {
+                    tab.className = "group-tab px-5 py-3 rounded-2xl font-bold text-lg jua-font bg-slate-800 text-white transition shadow-sm border border-slate-800";
+                } else {
+                    tab.className = "group-tab px-5 py-3 rounded-2xl font-bold text-lg jua-font bg-slate-100 text-slate-700 border border-slate-200 transition";
+                }
+            });
+
+            document.getElementById('edit-form-box').classList.add('hidden');
+            updateTeacherDisplay(groupNum);
+        }
+
+        function toggleEditSentence() {
+            const editBox = document.getElementById('edit-form-box');
+            const groupNum = window.currentSelectedGroup;
+            if (!groupNum) return;
+
+            const currentSentence = window.sentencesData ? window.sentencesData[`group_${groupNum}`] : '';
+            document.getElementById('edit-sentence-input').value = currentSentence || '';
+            editBox.classList.toggle('hidden');
+        }
+
+        function revealAnswer() {
+            const answerBox = document.getElementById('answer-box');
+            answerBox.classList.remove('hidden');
+            playSuccessSound();
+        }
+
+        window.selectTeacherGroup = selectTeacherGroup;
+        window.toggleEditSentence = toggleEditSentence;
+        window.revealAnswer = revealAnswer;
+        window.updateTeacherDisplay = updateTeacherDisplay;
+
+        window.onload = function() {
+            if (typeof initFirebase === 'function') {
+                initFirebase();
+            }
+            startExampleRotation();
+        };
+    </script>
+</body>
+</html>
